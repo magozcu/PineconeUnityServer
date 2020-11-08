@@ -58,3 +58,15 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+PineconeUnityClient/Library/
+PineconeUnityClient/obj/
+PineconeUnityClient/Logs/
+PineconeUnityClient/Temp/
+UnityServerWFA/PineconeGames.Client.Core/bin/
+UnityServerWFA/PineconeGames.Client.Core/obj/
+UnityServerWFA/PineconeGames.Network.Core/bin/
+UnityServerWFA/PineconeGames.Network.Core/obj/
+UnityServerWFA/PineconeGames.Server.Core/bin/
+UnityServerWFA/PineconeGames.Server.Core/obj/
+UnityServerWFA/UnityServerWFA/bin/
+UnityServerWFA/UnityServerWFA/obj/
