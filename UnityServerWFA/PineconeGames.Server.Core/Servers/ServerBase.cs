@@ -14,6 +14,13 @@ namespace PineconeGames.Server.Core.Servers
 {
     public abstract class ServerBase
     {
+        #region Events
+
+        public ConnectedEventHandler OnConnected;
+        public DisconnectedEventHandler OnDisconnected;
+
+        #endregion
+
         #region Variables
 
         public int Port
@@ -61,7 +68,7 @@ namespace PineconeGames.Server.Core.Servers
 
             _serverName = IPAddress.Any.ToString() + ":" + port.ToString();
 
-            IncomingMessageManager.Instance.OnWelcomeReceivedMessage += WelcomeReceivedMessage;
+            BindOnIncomingMessageEvents();
         }
 
         public ServerBase(int port, int maxClient, string serverName) : this(port, maxClient)
@@ -106,6 +113,7 @@ namespace PineconeGames.Server.Core.Servers
 
             try
             {
+                DisconnectAllUsers();
                 _tcpListener.Stop();
 
                 result = true;
@@ -118,9 +126,51 @@ namespace PineconeGames.Server.Core.Servers
             return result;
         }
 
+        public virtual void SendMessageToClient(string clientId, MessageBase message)
+        {
+            if (_clientList != null && _clientList.Any())
+            {
+                TCP client = _clientList.FirstOrDefault(a => a.ID == clientId);
+
+                if (client != null)
+                {
+                    client.SendData(message.GenerateTCPData());
+                }
+            }
+        }
+
+        public virtual void SendMessageToClient(int clientIndex, MessageBase message)
+        {
+            if (_clientList != null && _clientList.Any())
+            {
+                try
+                {
+                    TCP client = _clientList.ElementAt(clientIndex);
+
+                    if (client != null)
+                    {
+                        client.SendData(message.GenerateTCPData());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    PineconeLogManager.Instance.EnterErrorLog(string.Format("ServerBase.SendMessageToClient({0}, {1}) failed. Reason: {2}", clientIndex, clientIndex, ex.Message), ex);
+                }
+            }
+        }
+
         #endregion
 
         #region Protected Functions
+
+        #region Initialize Functions
+
+        protected virtual void BindOnIncomingMessageEvents()
+        {
+            IncomingMessageManager.Instance.OnWelcomeReceivedMessage += WelcomeReceivedMessage;
+        }
+
+        #endregion
 
         #region Network Functions
 
@@ -131,14 +181,13 @@ namespace PineconeGames.Server.Core.Servers
 
         protected virtual void TCPConnectCallback(IAsyncResult result)
         {
-            if (_tcpListener.Server.IsBound)
+            if (_tcpListener.Server != null && _tcpListener.Server.IsBound)
             {
                 TcpClient client = _tcpListener.EndAcceptTcpClient(result);
                 ListenForConnections();
 
-                //int userId = GetNewUserId();
                 string userId = GetNewUserId();
-                TCP tcp = new TCP(userId);
+                TCP tcp = new TCP(userId, ClientDisconnected);
                 if (tcp.Connect(client))
                 {
                     _clientList.Add(tcp);
@@ -172,6 +221,8 @@ namespace PineconeGames.Server.Core.Servers
                 {
                     tcp.SetId(username);
                     PineconeLogManager.Instance.EnterInfoLog(string.Format("{0}: {1} has been changed as {2}", _serverName, id, username));
+
+                    OnConnected?.Invoke(tcp.ID);
                 }
             }
         }
@@ -185,7 +236,39 @@ namespace PineconeGames.Server.Core.Servers
             return "Player_" + _idCounter++;
         }
 
+        protected virtual void DisconnectAllUsers()
+        {
+            if (_clientList != null && _clientList.Any())
+            {
+                List<TCP> allClients = _clientList.ToList();
+
+                for (int i = 0; i < allClients.Count; i++)
+                {
+                    allClients[i].Disconnect();
+                }
+            }
+        }
+
         #endregion
+
+        #endregion
+
+        #region Event Binded Functions
+
+        protected virtual void ClientDisconnected(string id)
+        {
+            if (!string.IsNullOrEmpty(id) && _clientList != null && _clientList.Any())
+            {
+                TCP disconnectedClient = _clientList.FirstOrDefault(a => a.ID == id);
+                if (disconnectedClient != null)
+                {
+                    _clientList.Remove(disconnectedClient);
+                    PineconeLogManager.Instance.EnterInfoLog(string.Format("Client Disconnected() ID: {0}", disconnectedClient.ID));
+
+                    OnDisconnected?.Invoke(disconnectedClient.ID);
+                }
+            }
+        }
 
         #endregion
     }

@@ -25,7 +25,7 @@ namespace PineconeGames.Client.Core.Messages
 
         #region Message Functions
 
-        public void SendWelcomeReceivedMessageToServer(int id, string username)
+        public void SendWelcomeReceivedMessageToServer(string id, string username)
         {
             using (Packet packet = new Packet())
             {
@@ -33,6 +33,14 @@ namespace PineconeGames.Client.Core.Messages
                 packet.Write(username);
 
                 _connection.SendData(packet);
+            }
+        }
+
+        public void SendReadyStatusMessageToServer(string id, bool readyStatus)
+        {
+            using (Packet packet = new Packet())
+            {
+                
             }
         }
 

@@ -31,7 +31,7 @@ namespace PineconeGames.UnityClient.Tests
 
         private void Connect()
         {
-            PineconeClient.Instance.Connect("192.168.1.22", 5056, null);
+            PineconeClient.Instance.Connect("192.168.1.22", 5056, "Test User", null, null);
         }
 
         #endregion

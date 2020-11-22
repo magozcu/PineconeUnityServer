@@ -1,7 +1,9 @@
 ﻿using PineconeGames.Client.Core.Clients;
 using PineconeGames.Client.Core.ConnectionTypes;
+using PineconeGames.Core.Logs;
 using PineconeGames.CoreUnity.Patterns;
 using PineconeGames.Network.Core.Messages;
+using PineconeGames.Network.Core.Messages.ServerSide;
 using UnityEngine;
 
 namespace PineconeGames.CoreUnity.Network.Client
@@ -11,6 +13,7 @@ namespace PineconeGames.CoreUnity.Network.Client
         #region Events
 
         protected ConnectionResultEventHandler _onConnectionResultReceived;
+        protected DisconnectedEventHandler _onDisconnected;
 
         #endregion
 
@@ -24,25 +27,32 @@ namespace PineconeGames.CoreUnity.Network.Client
 
         protected virtual void Awake()
         {
-            _tcpClient = new TCPClient("Dummy User");
-
             BindOnIncomingMessageEvents();
+
+            PineconeMasterManager.Instance.Initialize();
+        }
+
+        protected virtual void OnApplicationQuit()
+        {
+            Disconnect();
         }
 
         #endregion
 
         #region Public Functions
 
-        public void Connect(string ip, int port, ConnectionResultEventHandler onConnectionResultReceived)
+        public void Connect(string ip, int port, string id, ConnectionResultEventHandler onConnectionResultReceived, DisconnectedEventHandler onDisconnected)
         {
             _onConnectionResultReceived = onConnectionResultReceived;
+            _onDisconnected = onDisconnected;
 
+            InitializeTCPClient(id);
             _tcpClient.Connect(ip, port, onConnectionResultReceived);
         }
 
-        public void SendWelcomeReceivedMessage(string id, string username)
+        public void Disconnect()
         {
-            _tcpClient.SendWelcomeReceivedMessage(id, username);
+            _tcpClient?.Disconnect(); 
         }
 
         #endregion
@@ -56,6 +66,18 @@ namespace PineconeGames.CoreUnity.Network.Client
             IncomingMessageManager.Instance.OnWelcomeMessage += WelcomeMessage;
         }
 
+        protected virtual void InitializeTCPClient(string id)
+        {
+            if (_tcpClient != null && _tcpClient.IsConnected)
+            {
+                _onDisconnected = null;
+                _tcpClient.Disconnect();
+            }
+
+            _tcpClient?.DestroyClient(false);
+            _tcpClient = new TCPClient(id, Disconnected);
+        }
+
         #endregion
 
         #region Connect Functions
@@ -63,6 +85,13 @@ namespace PineconeGames.CoreUnity.Network.Client
         protected virtual void ConnectionResultReceived(bool result)
         {
             _onConnectionResultReceived?.Invoke(result);
+        }
+
+        protected virtual void Disconnected(string id)
+        {
+            PineconeLogManager.Instance.EnterInfoLog(string.Format("PineconeClient.Disconnected({0})", id));
+
+            _onDisconnected?.Invoke(id);
         }
 
         #endregion
@@ -76,8 +105,6 @@ namespace PineconeGames.CoreUnity.Network.Client
         protected virtual void WelcomeMessage(string id, string message)
         {
             Debug.Log(string.Format("PineconeClient.WelcomeMessageReceived({0}, {1})", id, message));
-
-            SendWelcomeReceivedMessage(id, "Mert Ali Gözcü");
         }
 
         #endregion

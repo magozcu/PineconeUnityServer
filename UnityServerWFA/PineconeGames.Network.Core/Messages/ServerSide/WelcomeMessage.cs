@@ -11,28 +11,6 @@ namespace PineconeGames.Network.Core.Messages.ServerSide
 
     public class WelcomeMessage : MessageBase
     {
-        #region Variables
-
-        public int ID
-        {
-            get
-            {
-                return _id;
-            }
-        }
-        public string Message
-        {
-            get
-            {
-                return _message;
-            }
-        }
-
-        protected int _id;
-        protected string _message;
-
-        #endregion
-
         #region Constructors
 
         public WelcomeMessage(string id, string message) : base(PacketType.Welcome)

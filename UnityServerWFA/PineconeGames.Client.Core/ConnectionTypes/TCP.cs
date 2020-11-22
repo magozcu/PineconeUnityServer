@@ -1,85 +1,37 @@
 ﻿using PineconeGames.Core.Logs;
-using PineconeGames.Core.Threads;
 using PineconeGames.Network.Core.Data;
-using PineconeGames.Network.Core.Messages;
 using System;
+using System.Net;
 using System.Net.Sockets;
 
 namespace PineconeGames.Client.Core.ConnectionTypes
 {
-    #region Event Handler
-
-    public delegate void ConnectionResultEventHandler(bool connected);
-
-    #endregion
-
-    public class TCP
+    public class TCP : ConnectionBase
     {
-        #region Events
-
-        protected ConnectionResultEventHandler _onConnectionResultReceived; 
-
-        #endregion
-
         #region Variables
 
-        public static int DataBufferSize
-        {
-            get
-            {
-                return _dataBufferSize;
-            }
-        }
-
-        public string ID
-        {
-            get
-            {
-                return _id;
-            }
-        }
+        public override bool IsConnected => base.IsConnected && _isConnected;
 
         protected TcpClient _socket;
-        protected string _id;
-        protected NetworkStream _stream;
-        protected byte[] _receiveBuffer;
-        protected Packet _receivedData;
-
-        private static int _dataBufferSize = 4096;
+        protected bool _isConnected;
 
         #endregion
 
         #region Constructors
 
-        public TCP (string id)
+        public TCP (string id) : base (id)
         {
-            _id = id;
+            _isConnected = false;
+        }
 
-            _receivedData = new Packet();
+        public TCP (string id, DisconnectedEventHandler onDisconnected) : base(id, onDisconnected)
+        {
+            _isConnected = false;
         }
 
         #endregion
 
-        #region Public Functions
-
-        #region Static Functions
-
-        public static void SetDataBufferSize(int dataBufferSize = 4096)
-        {
-            if (dataBufferSize > 0)
-            {
-                _dataBufferSize = dataBufferSize;
-            }
-        }
-
-        #endregion
-
-        #region Instance Functions
-
-        public virtual void SetId(string id)
-        {
-            _id = id;
-        }
+        #region Public Functions   
 
         public virtual bool Connect(TcpClient socket)
         {
@@ -97,6 +49,7 @@ namespace PineconeGames.Client.Core.ConnectionTypes
                 _stream.BeginRead(_receiveBuffer, 0, DataBufferSize, ReceiveCallback, null);
 
                 result = true;
+                _isConnected = result;
             }
             catch(Exception ex)
             {
@@ -120,6 +73,7 @@ namespace PineconeGames.Client.Core.ConnectionTypes
                 _socket.BeginConnect(ip, port, new AsyncCallback(ConnectCallback), _socket);
 
                 _onConnectionResultReceived = onConnectionResultReceived;
+                _isConnected = true;
             }
             catch(Exception ex)
             {
@@ -128,7 +82,21 @@ namespace PineconeGames.Client.Core.ConnectionTypes
             }
         }
 
-        public virtual bool SendData(Packet packet)
+        public override void Disconnect()
+        {
+            base.Disconnect();
+
+            _socket?.Close();
+
+            _stream = null;
+            _receivedData = null;
+            _receiveBuffer = null;
+            _socket = null;
+
+            _isConnected = false;
+        }
+
+        public override bool SendData(Packet packet)
         {
             bool result = false;
 
@@ -147,97 +115,30 @@ namespace PineconeGames.Client.Core.ConnectionTypes
             }
 
             return result;
-        }
+        }   
 
-        #endregion
-
-        #endregion
-
-        #region Protected Functions
-
-        protected virtual void ListenForReceivedData()
+        public override int GetLocalEndPoint()
         {
-            _stream.BeginRead(_receiveBuffer, 0, DataBufferSize, ReceiveCallback, null);
-        }
+            int result = (-1);
 
-        protected virtual bool HandleData(byte[] data)
-        {
-            if (data != null)
+            if (_socket != null)
             {
                 try
                 {
-                    int packetLength = 0;
-                    _receivedData.SetBytes(data);
-
-                    if (_receivedData.UnreadLength() >= 4)
-                    {
-                        packetLength = _receivedData.ReadInt();
-                        if (packetLength <= 0)
-                        {
-                            return true;
-                        }
-                    }
-
-                    while (packetLength > 0 && packetLength <= _receivedData.UnreadLength())
-                    {
-                        byte[] packetBytes = _receivedData.ReadBytes(packetLength);
-                        PineconeThreadManager.Instance.ExecuteOnMainThread(() =>
-                        {
-                            using (Packet packet = new Packet(packetBytes))
-                            {
-                                int packetType = packet.ReadInt();
-                                IncomingMessageManager.Instance.HandleIncomingMessage(packetType, packet);
-                            }
-                        });
-
-                        packetLength = 0;
-                        if (_receivedData.UnreadLength() >= 4)
-                        {
-                            packetLength = _receivedData.ReadInt();
-                            if (packetLength <= 0)
-                            {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if (packetLength <= 1)
-                    {
-                        return true;
-                    }
+                    result = ((IPEndPoint)(_socket.Client.LocalEndPoint)).Port;
                 }
-                catch (Exception ex)
+                catch(Exception ex)
                 {
-                    PineconeLogManager.Instance.EnterErrorLog(string.Format("TCP.HandleData({0}) failed. Reason: {1}", data.Length, ex.Message), ex);
+                    PineconeLogManager.Instance.EnterErrorLog(string.Format("TCP.GetLocalEndPoint() failed. Reason: {0}", ex.Message), ex);
                 }
             }
 
-            return false;
+            return result;
         }
 
-        protected virtual void ReceiveCallback(IAsyncResult result)
-        {
-            try
-            {
-                int byteLength = _stream.EndRead(result);
-                if (byteLength <= 0)
-                {
-                    //TODO Disconnect
-                    return;
-                }
+        #endregion
 
-                byte[] data = new byte[byteLength];
-                Array.Copy(_receiveBuffer, data, byteLength);
-
-                _receivedData.Reset(HandleData(data));
-                ListenForReceivedData();
-            }
-            catch(Exception ex)
-            {
-                PineconeLogManager.Instance.EnterErrorLog(string.Format("TCP.ReceiveCallback() failed. Reason: {0}", ex.Message), ex);
-                //TODO Disconnect
-            }
-        }
+        #region Protected Functions  
 
         protected virtual void ConnectCallback(IAsyncResult result)
         {
@@ -263,7 +164,18 @@ namespace PineconeGames.Client.Core.ConnectionTypes
             }
 
             _onConnectionResultReceived?.Invoke(isConnected);
-        } 
+        }
+
+        #endregion
+
+        #region Event Binded Functions
+
+        protected virtual void Disconnected(string id)
+        {
+            _isConnected = false;
+
+            _onDisconnected?.Invoke(id);    
+        }
 
         #endregion
     }

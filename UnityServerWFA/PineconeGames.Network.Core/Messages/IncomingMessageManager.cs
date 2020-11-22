@@ -71,7 +71,7 @@ namespace PineconeGames.Network.Core.Messages
             _packetHandleDict = new Dictionary<PacketType, PacketHandler>()
             {
                 { PacketType.Welcome, WelcomeMessage },
-                { PacketType.WelcomeReceived, WelcomeReceivedMessage }
+                { PacketType.WelcomeReceived, WelcomeReceivedMessage },
             };
         }
 

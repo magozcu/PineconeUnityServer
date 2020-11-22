@@ -9,12 +9,32 @@ namespace PineconeGames.CoreUnity
 {
     public class PineconeMasterManager : SingletonMonoBehaviour<PineconeMasterManager>
     {
+        #region Variables
+
+        protected bool _isInitialized = false;
+
+        #endregion
+
         #region Unity Functions
 
         protected virtual void Awake()
         {
-            PineconeLogManager.Instance.BindOnLogEvents(InfoLog, WarningLog, ErrorLog);
-            PineconeThreadManager.Instance.BindOnEvents(ThreadManager.Instance.ExecuteOnMainThread);
+            Initialize();
+        }
+
+        #endregion
+
+        #region Public Functions
+
+        public virtual void Initialize()
+        {
+            if (!_isInitialized)
+            {
+                PineconeLogManager.Instance.BindOnLogEvents(InfoLog, WarningLog, ErrorLog);
+                PineconeThreadManager.Instance.BindOnEvents(ThreadManager.Instance.ExecuteOnMainThread);
+
+                _isInitialized = true;
+            }
         }
 
         #endregion

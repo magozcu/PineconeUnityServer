@@ -2,6 +2,7 @@
 using PineconeGames.Core.Logs;
 using PineconeGames.Core.Threads;
 using PineconeGames.Network.Core.Messages;
+using PineconeGames.Network.Core.Messages.ServerSide;
 using PineconeGames.Server.Core.Servers;
 using System;
 using System.Threading;
@@ -77,6 +78,11 @@ namespace UnityServerWFA
             _testClient.Connect("127.0.0.1", 5056, ConnectionResultReceived);
         }
 
+        protected void ClientDisconnect()
+        {
+            _testClient.Disconnect();
+        }
+
         protected void ConnectionResultReceived(bool result)
         {
             InfoLog(result.ToString());
@@ -91,8 +97,6 @@ namespace UnityServerWFA
         {
             string userId = id;
             string userMessage = message;
-
-            _testClient.SendWelcomeReceivedMessage(id, "Mert Ali GÖZCÜ");
         }
 
         #endregion
@@ -120,10 +124,20 @@ namespace UnityServerWFA
             new Thread(new ThreadStart(ClientTest)).Start();
         }
 
+        private void btnDisconnect_Click(object sender, EventArgs e)
+        {
+            ClientDisconnect();
+        }
+
         private void WelcomeReceivedMessage(string id, string username)
         {
             string _id = id;
             string _username = username;
+        }
+
+        private void ServerForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            _mainServer?.StopServer();
         }
     }
 }

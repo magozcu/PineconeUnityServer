@@ -37,6 +37,7 @@
             this.btnStartServer = new System.Windows.Forms.Button();
             this.btnStopServer = new System.Windows.Forms.Button();
             this.btnClientConnect = new System.Windows.Forms.Button();
+            this.btnDisconnect = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // lblHeaderInfo
@@ -123,11 +124,22 @@
             this.btnClientConnect.UseVisualStyleBackColor = true;
             this.btnClientConnect.Click += new System.EventHandler(this.btnClientConnect_Click);
             // 
+            // btnDisconnect
+            // 
+            this.btnDisconnect.Location = new System.Drawing.Point(409, 39);
+            this.btnDisconnect.Name = "btnDisconnect";
+            this.btnDisconnect.Size = new System.Drawing.Size(100, 23);
+            this.btnDisconnect.TabIndex = 9;
+            this.btnDisconnect.Text = "Client Disconnect";
+            this.btnDisconnect.UseVisualStyleBackColor = true;
+            this.btnDisconnect.Click += new System.EventHandler(this.btnDisconnect_Click);
+            // 
             // ServerForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.btnDisconnect);
             this.Controls.Add(this.btnClientConnect);
             this.Controls.Add(this.btnStopServer);
             this.Controls.Add(this.btnStartServer);
@@ -139,6 +151,7 @@
             this.Controls.Add(this.lblHeaderInfo);
             this.Name = "ServerForm";
             this.Text = "ServerForm";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ServerForm_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -155,5 +168,6 @@
         private System.Windows.Forms.Button btnStartServer;
         private System.Windows.Forms.Button btnStopServer;
         private System.Windows.Forms.Button btnClientConnect;
+        private System.Windows.Forms.Button btnDisconnect;
     }
 }
